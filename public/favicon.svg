@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="32" height="32" rx="6" fill="#2C3E50"/>
+  
+  <!-- Left Timer -->
+  <rect x="4" y="8" width="10" height="16" rx="2" fill="#3498DB" opacity="0.8"/>
+  
+  <!-- Right Timer -->
+  <rect x="18" y="8" width="10" height="16" rx="2" fill="#E74C3C" opacity="0.8"/>
+  
+  <!-- Center Connector -->
+  <rect x="14" y="14" width="4" height="4" rx="1" fill="#ECF0F1"/>
+  
+  <!-- Digital Display Lines (Left) -->
+  <rect x="5" y="12" width="8" height="1" fill="#ECF0F1"/>
+  <rect x="5" y="15" width="8" height="1" fill="#ECF0F1"/>
+  
+  <!-- Digital Display Lines (Right) -->
+  <rect x="19" y="12" width="8" height="1" fill="#ECF0F1"/>
+  <rect x="19" y="15" width="8" height="1" fill="#ECF0F1"/>
+</svg> 
