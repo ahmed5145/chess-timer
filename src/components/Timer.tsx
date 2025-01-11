@@ -4,6 +4,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../store/store.ts';
 import { updateTime, switchPlayer, startGame, stopGame, resetGame } from '../store/timerSlice.ts';
 import TimeControlConfig from './TimeControlConfig.tsx';
+import { useSound } from '../utils/sound.ts';
+import Settings from './Settings.tsx';
 
 const fadeIn = keyframes`
   from {
@@ -52,6 +54,22 @@ const TimerContainer = styled.div`
   color: white;
   padding: 16px;
   animation: ${fadeIn} 0.5s ease-out;
+  overflow-y: auto;
+  overflow-x: hidden;
+  
+  /* Add some padding at the bottom for better scrolling */
+  padding-bottom: 32px;
+  
+  /* Smooth scrolling */
+  scroll-behavior: smooth;
+  
+  /* Hide scrollbar on mobile */
+  @media (max-width: 768px) {
+    &::-webkit-scrollbar {
+      display: none;
+    }
+    scrollbar-width: none;
+  }
 `;
 
 const Title = styled.h1`
@@ -251,15 +269,33 @@ const Timer: React.FC = () => {
   const { player1Timer, player2Timer, isGameActive, activePlayer } = useSelector(
     (state: RootState) => state.timer
   );
+  const { isMuted, isLowTimeWarningEnabled, lowTimeThreshold } = useSelector(
+    (state: RootState) => state.settings
+  );
+  
+  const { playSound } = useSound(isMuted);
+  
+  // Add state to track if low time warning has been played
+  const [hasPlayedLowTimeWarning1, setHasPlayedLowTimeWarning1] = React.useState(false);
+  const [hasPlayedLowTimeWarning2, setHasPlayedLowTimeWarning2] = React.useState(false);
+
+  // Reset warning flags when game is reset or stopped
+  React.useEffect(() => {
+    if (!isGameActive) {
+      setHasPlayedLowTimeWarning1(false);
+      setHasPlayedLowTimeWarning2(false);
+    }
+  }, [isGameActive]);
 
   const handleKeyPress = useCallback((event: KeyboardEvent) => {
     if (event.code === 'Space') {
       event.preventDefault();
       if (isGameActive) {
+        playSound('switch');
         dispatch(switchPlayer());
       }
     }
-  }, [dispatch, isGameActive]);
+  }, [dispatch, isGameActive, playSound]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyPress);
@@ -272,37 +308,75 @@ const Timer: React.FC = () => {
     if (isGameActive) {
       interval = setInterval(() => {
         dispatch(updateTime(100)); // Update every 100ms
+        
+        // Check for low time warning
+        if (isLowTimeWarningEnabled) {
+          const activeTime = activePlayer === 1 
+            ? player1Timer.currentTime 
+            : player2Timer.currentTime;
+            
+          // Check if we should play the low time warning
+          if (activePlayer === 1 && !hasPlayedLowTimeWarning1 && activeTime <= lowTimeThreshold && activeTime > 0) {
+            playSound('lowTime');
+            setHasPlayedLowTimeWarning1(true);
+          } else if (activePlayer === 2 && !hasPlayedLowTimeWarning2 && activeTime <= lowTimeThreshold && activeTime > 0) {
+            playSound('lowTime');
+            setHasPlayedLowTimeWarning2(true);
+          } else if (activeTime <= 0) {
+            playSound('timeUp');
+            dispatch(stopGame());
+          }
+        }
       }, 100);
     }
     
     return () => clearInterval(interval);
-  }, [isGameActive, dispatch]);
+  }, [isGameActive, dispatch, activePlayer, player1Timer.currentTime, player2Timer.currentTime, 
+      isLowTimeWarningEnabled, lowTimeThreshold, playSound, hasPlayedLowTimeWarning1, hasPlayedLowTimeWarning2]);
 
+  // Reset warning flags when switching players
   const handleTimerClick = (playerId: number) => {
     if (!isGameActive) return;
     if (activePlayer === playerId) {
+      playSound('switch');
       dispatch(switchPlayer());
+      // Reset warning flag for the player who's getting more time (via increment)
+      if (playerId === 1) {
+        setHasPlayedLowTimeWarning1(false);
+      } else {
+        setHasPlayedLowTimeWarning2(false);
+      }
     }
   };
 
   const handleStart = () => {
+    playSound('gameStart');
     dispatch(startGame());
   };
 
   const handleStop = () => {
+    playSound('click');
     dispatch(stopGame());
   };
 
   const handleReset = () => {
+    playSound('gameEnd');
     dispatch(resetGame());
+    setHasPlayedLowTimeWarning1(false);
+    setHasPlayedLowTimeWarning2(false);
   };
 
-  const isLowTime = (time: number) => time < 30000; // Less than 30 seconds
+  const isLowTime = (time: number) => time < lowTimeThreshold;
 
   return (
     <TimerContainer>
       <Title>Chess Timer</Title>
-      {!isGameActive && <TimeControlConfig />}
+      {!isGameActive && (
+        <>
+          <TimeControlConfig />
+          <Settings />
+        </>
+      )}
       <TimerGrid>
         <PlayerTimer
           isActive={activePlayer === 1}

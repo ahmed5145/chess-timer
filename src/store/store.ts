@@ -1,9 +1,11 @@
 import { configureStore } from '@reduxjs/toolkit';
 import timerReducer from './timerSlice.ts';
+import settingsReducer from './settingsSlice.ts';
 
 export const store = configureStore({
   reducer: {
     timer: timerReducer,
+    settings: settingsReducer,
   },
 });
 
