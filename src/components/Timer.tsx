@@ -1,47 +1,59 @@
 import React, { useEffect, useCallback } from 'react';
-import styled, { keyframes, css } from 'styled-components';
+import styled, { ThemeProvider, keyframes, css } from 'styled-components';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../store/store.ts';
-import { updateTime, switchPlayer, startGame, stopGame, resetGame } from '../store/timerSlice.ts';
 import TimeControlConfig from './TimeControlConfig.tsx';
-import { useSound } from '../utils/sound.ts';
 import Settings from './Settings.tsx';
+import PlayerSettings from './PlayerSettings.tsx';
+import { useSound } from '../utils/sound.ts';
+import { updateTime, switchPlayer, startGame, stopGame, resetGame } from '../store/timerSlice.ts';
 
 const fadeIn = keyframes`
   from {
     opacity: 0;
-    transform: translateY(20px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 `;
+
+const buttonGlow = keyframes`
+  0% {
+    box-shadow: 0 0 5px rgba(52, 152, 219, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(52, 152, 219, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 5px rgba(52, 152, 219, 0.2);
+  }
+`;
+
+interface GlowProps {
+  accentColor?: string;
+}
 
 const pulse = keyframes`
   0% {
     transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4);
   }
-  70% {
-    transform: scale(1.01);
-    box-shadow: 0 0 0 10px rgba(231, 76, 60, 0);
+  50% {
+    transform: scale(1.05);
   }
   100% {
     transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(231, 76, 60, 0);
   }
 `;
 
-const glowAnimation = keyframes`
+const glowAnimation = keyframes<GlowProps>`
   0% {
-    box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
+    box-shadow: 0 0 5px ${props => props.accentColor || '#3498DB'};
   }
   50% {
-    box-shadow: 0 0 20px rgba(52, 152, 219, 0.8);
+    box-shadow: 0 0 20px ${props => props.accentColor || '#3498DB'};
   }
   100% {
-    box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
+    box-shadow: 0 0 5px ${props => props.accentColor || '#3498DB'};
   }
 `;
 
@@ -49,27 +61,11 @@ const TimerContainer = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
+  padding: 20px;
   min-height: 100vh;
-  background: linear-gradient(135deg, #1a1a1a 0%, #2c3e50 100%);
-  color: white;
-  padding: 16px;
-  animation: ${fadeIn} 0.5s ease-out;
-  overflow-y: auto;
-  overflow-x: hidden;
-  
-  /* Add some padding at the bottom for better scrolling */
-  padding-bottom: 32px;
-  
-  /* Smooth scrolling */
-  scroll-behavior: smooth;
-  
-  /* Hide scrollbar on mobile */
-  @media (max-width: 768px) {
-    &::-webkit-scrollbar {
-      display: none;
-    }
-    scrollbar-width: none;
-  }
+  background-color: ${props => props.theme.mode === 'dark' ? '#2C3E50' : '#ECF0F1'};
+  color: ${props => props.theme.mode === 'dark' ? '#ECF0F1' : '#2C3E50'};
+  transition: background-color 0.3s, color 0.3s;
 `;
 
 const Title = styled.h1`
@@ -121,41 +117,26 @@ const activeTimerStyles = css`
   transform: scale(1.02);
 `;
 
-const PlayerTimer = styled.div<{ isActive: boolean }>`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
-  padding: 24px;
-  border-radius: 16px;
-  cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-
+const PlayerTimer = styled.div<{ isActive: boolean; isLowTime: boolean; theme: string; accentColor: string }>`
+  background-color: ${props => props.theme === 'dark' ? '#2c3e50' : '#ecf0f1'};
+  color: ${props => props.theme === 'dark' ? '#ecf0f1' : '#2c3e50'};
+  border: 2px solid ${props => props.isActive ? props.accentColor : 'transparent'};
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+  transition: all 0.3s ease;
+  animation: ${fadeIn} 0.5s ease-out;
+  
   ${props => props.isActive && activeTimerStyles}
-
-  &:before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, #3498db, #2ecc71);
-    transform: scaleX(${props => props.isActive ? 1 : 0});
-    transition: transform 0.4s ease;
-  }
-
+  
   &:hover {
-    transform: ${props => props.isActive ? 'scale(1.02)' : 'scale(1.01)'};
+    transform: ${props => props.isActive ? 'scale(1.02)' : 'none'};
+    box-shadow: ${props => props.isActive ? `0 0 15px ${props.accentColor}` : 'none'};
   }
 
-  @media (max-width: 768px) {
-    padding: 16px;
-  }
+  ${props => props.isLowTime && props.isActive && css`
+    animation: ${buttonGlow} 1.5s infinite;
+  `}
 `;
 
 const PlayerName = styled.h2`
@@ -194,65 +175,42 @@ const Controls = styled.div`
   margin-top: 20px;
 `;
 
-const buttonGlow = keyframes`
-  0% { box-shadow: 0 0 5px rgba(52, 152, 219, 0.5); }
-  50% { box-shadow: 0 0 20px rgba(52, 152, 219, 0.8); }
-  100% { box-shadow: 0 0 5px rgba(52, 152, 219, 0.5); }
-`;
-
-const Button = styled.button`
-  padding: 8px 20px;
+const Button = styled.button<{ theme: string; accentColor: string; variant?: 'start' | 'reset' }>`
+  background: ${props => {
+    if (props.variant === 'start') return 'linear-gradient(135deg, #2ecc71, #27ae60)';
+    if (props.variant === 'reset') return 'linear-gradient(135deg, #e74c3c, #c0392b)';
+    return props.theme === 'dark' ? '#34495e' : '#bdc3c7';
+  }};
+  color: #ecf0f1;
   border: none;
   border-radius: 8px;
-  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-  color: white;
-  cursor: pointer;
-  font-size: 0.9rem;
+  padding: 12px 24px;
+  font-size: 1.1rem;
   font-weight: 600;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  transition: all 0.3s ease;
   text-transform: uppercase;
   letter-spacing: 1px;
-  position: relative;
-  overflow: hidden;
-
-  &:before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transform: translateX(-100%);
-  }
-
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  
   &:hover {
     transform: translateY(-2px);
-    animation: ${buttonGlow} 2s infinite;
-
-    &:before {
-      transform: translateX(100%);
-      transition: transform 0.6s ease;
-    }
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+    background: ${props => {
+      if (props.variant === 'start') return 'linear-gradient(135deg, #27ae60, #219a52)';
+      if (props.variant === 'reset') return 'linear-gradient(135deg, #c0392b, #a93226)';
+      return props.accentColor;
+    }};
   }
 
   &:active {
     transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 
-  &:disabled {
-    background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
-    cursor: not-allowed;
-    transform: none;
-  }
-`;
-
-const ResetButton = styled(Button)`
-  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-
-  &:hover {
-    background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%);
-  }
+  ${props => props.variant === 'start' && css`
+    animation: ${buttonGlow} 2s infinite;
+  `}
 `;
 
 const formatTime = (ms: number): string => {
@@ -272,7 +230,15 @@ const Timer: React.FC = () => {
   const { isMuted, isLowTimeWarningEnabled, lowTimeThreshold } = useSelector(
     (state: RootState) => state.settings
   );
+  const { player1Name, player2Name, theme, accentColor } = useSelector(
+    (state: RootState) => state.player
+  );
   
+  const themeObject = {
+    mode: theme,
+    accentColor: accentColor
+  };
+
   const { playSound } = useSound(isMuted);
   
   // Add state to track if low time warning has been played
@@ -369,45 +335,74 @@ const Timer: React.FC = () => {
   const isLowTime = (time: number) => time < lowTimeThreshold;
 
   return (
-    <TimerContainer>
-      <Title>Chess Timer</Title>
-      {!isGameActive && (
-        <>
-          <TimeControlConfig />
-          <Settings />
-        </>
-      )}
-      <TimerGrid>
-        <PlayerTimer
-          isActive={activePlayer === 1}
-          onClick={() => handleTimerClick(1)}
-        >
-          <PlayerName>Player 1</PlayerName>
-          <TimeDisplay isLowTime={isLowTime(player1Timer.currentTime)}>
-            {formatTime(player1Timer.currentTime)}
-          </TimeDisplay>
-        </PlayerTimer>
-        
-        <PlayerTimer
-          isActive={activePlayer === 2}
-          onClick={() => handleTimerClick(2)}
-        >
-          <PlayerName>Player 2</PlayerName>
-          <TimeDisplay isLowTime={isLowTime(player2Timer.currentTime)}>
-            {formatTime(player2Timer.currentTime)}
-          </TimeDisplay>
-        </PlayerTimer>
-      </TimerGrid>
-
-      <Controls>
-        {!isGameActive ? (
-          <Button onClick={handleStart}>Start Game</Button>
-        ) : (
-          <Button onClick={handleStop}>Pause</Button>
+    <ThemeProvider theme={themeObject}>
+      <TimerContainer>
+        <Title>Chess Timer</Title>
+        {!isGameActive && (
+          <>
+            <TimeControlConfig />
+            <PlayerSettings />
+            <Settings />
+          </>
         )}
-        <ResetButton onClick={handleReset}>Reset</ResetButton>
-      </Controls>
-    </TimerContainer>
+        <TimerGrid>
+          <PlayerTimer 
+            isActive={activePlayer === 1} 
+            isLowTime={isLowTime(player1Timer.currentTime)}
+            theme={theme}
+            accentColor={accentColor}
+            onClick={() => handleTimerClick(1)}
+          >
+            <PlayerName>{player1Name}</PlayerName>
+            <TimeDisplay isLowTime={isLowTime(player1Timer.currentTime)}>
+              {formatTime(player1Timer.currentTime)}
+            </TimeDisplay>
+          </PlayerTimer>
+          
+          <PlayerTimer 
+            isActive={activePlayer === 2}
+            isLowTime={isLowTime(player2Timer.currentTime)}
+            theme={theme}
+            accentColor={accentColor}
+            onClick={() => handleTimerClick(2)}
+          >
+            <PlayerName>{player2Name}</PlayerName>
+            <TimeDisplay isLowTime={isLowTime(player2Timer.currentTime)}>
+              {formatTime(player2Timer.currentTime)}
+            </TimeDisplay>
+          </PlayerTimer>
+        </TimerGrid>
+
+        <Controls>
+          {!isGameActive ? (
+            <Button 
+              theme={theme}
+              accentColor={accentColor}
+              variant="start"
+              onClick={handleStart}
+            >
+              Start Game
+            </Button>
+          ) : (
+            <Button 
+              theme={theme}
+              accentColor={accentColor}
+              onClick={handleStop}
+            >
+              Pause
+            </Button>
+          )}
+          <Button 
+            theme={theme}
+            accentColor={accentColor}
+            variant="reset"
+            onClick={handleReset}
+          >
+            Reset
+          </Button>
+        </Controls>
+      </TimerContainer>
+    </ThemeProvider>
   );
 };
 

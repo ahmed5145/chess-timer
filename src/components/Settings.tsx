@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../store/store.ts';
@@ -19,6 +19,7 @@ const SettingsContainer = styled.div`
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
 `;
 
 const Title = styled.h2`
@@ -29,11 +30,32 @@ const Title = styled.h2`
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
   letter-spacing: 1px;
   font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  &:hover {
+    color: #3498db;
+  }
 `;
 
-const SettingsGrid = styled.div`
-  display: grid;
+const ChevronIcon = styled.span<{ isCollapsed: boolean }>`
+  display: inline-block;
+  transform: ${props => props.isCollapsed ? 'rotate(-90deg)' : 'rotate(90deg)'};
+  transition: transform 0.3s ease;
+  &:after {
+    content: '›';
+    font-size: 1.5rem;
+  }
+`;
+
+const SettingsGrid = styled.div<{ isCollapsed: boolean }>`
+  display: ${props => props.isCollapsed ? 'none' : 'grid'};
   gap: 16px;
+  opacity: ${props => props.isCollapsed ? 0 : 1};
+  transition: opacity 0.3s ease;
 `;
 
 const SettingRow = styled.div`
@@ -100,6 +122,87 @@ const Slider = styled.input`
   }
 `;
 
+const ThresholdInputGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const ThresholdControls = styled.div`
+  display: flex;
+  gap: 8px;
+  align-items: center;
+`;
+
+const NumberInput = styled.input`
+  width: 60px;
+  padding: 8px;
+  border: 2px solid rgba(52, 152, 219, 0.3);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  color: white;
+  font-size: 1rem;
+  text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+
+  &:focus {
+    outline: none;
+    border-color: #3498db;
+  }
+
+  &::-webkit-inner-spin-button,
+  &::-webkit-outer-spin-button {
+    opacity: 0;
+  }
+`;
+
+const PresetButton = styled.button<{ isSelected?: boolean }>`
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  background: ${props => props.isSelected 
+    ? 'linear-gradient(135deg, #3498db, #2980b9)'
+    : 'rgba(52, 152, 219, 0.2)'};
+  color: white;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: ${props => props.isSelected 
+      ? 'linear-gradient(135deg, #2980b9, #2472a4)'
+      : 'rgba(52, 152, 219, 0.3)'};
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+`;
+
+const StepButton = styled.button`
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(52, 152, 219, 0.2);
+  color: white;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(52, 152, 219, 0.3);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+`;
+
 const Settings: React.FC = () => {
   const dispatch = useDispatch();
   const {
@@ -108,19 +211,26 @@ const Settings: React.FC = () => {
     isLowTimeWarningEnabled,
     lowTimeThreshold,
   } = useSelector((state: RootState) => state.settings);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     dispatch(setVolume(parseFloat(e.target.value)));
   };
 
-  const handleThresholdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    dispatch(setLowTimeThreshold(parseInt(e.target.value) * 1000)); // Convert to milliseconds
+  const commonThresholds = [10, 30, 60];
+
+  const handleThresholdStep = (step: number) => {
+    const newValue = Math.max(1, Math.min(300, lowTimeThreshold / 1000 + step));
+    dispatch(setLowTimeThreshold(newValue * 1000));
   };
 
   return (
     <SettingsContainer>
-      <Title>Settings</Title>
-      <SettingsGrid>
+      <Title onClick={() => setIsCollapsed(!isCollapsed)}>
+        <ChevronIcon isCollapsed={isCollapsed} />
+        Game Settings
+      </Title>
+      <SettingsGrid isCollapsed={isCollapsed}>
         <SettingRow>
           <Label>Sound</Label>
           <Toggle
@@ -153,16 +263,31 @@ const Settings: React.FC = () => {
         </SettingRow>
 
         <SettingRow>
-          <Label>Low Time Threshold (seconds)</Label>
-          <Slider
-            type="range"
-            min="5"
-            max="60"
-            step="5"
-            value={lowTimeThreshold / 1000}
-            onChange={handleThresholdChange}
-            disabled={!isLowTimeWarningEnabled}
-          />
+          <ThresholdInputGroup>
+            <Label>Low Time Threshold</Label>
+            <ThresholdControls>
+              <StepButton onClick={() => handleThresholdStep(-5)}>-</StepButton>
+              <NumberInput
+                type="number"
+                min="1"
+                max="300"
+                value={lowTimeThreshold / 1000}
+                onChange={(e) => dispatch(setLowTimeThreshold(parseInt(e.target.value) * 1000))}
+                disabled={!isLowTimeWarningEnabled}
+              />
+              <StepButton onClick={() => handleThresholdStep(5)}>+</StepButton>
+              {commonThresholds.map(seconds => (
+                <PresetButton
+                  key={seconds}
+                  isSelected={lowTimeThreshold === seconds * 1000}
+                  onClick={() => dispatch(setLowTimeThreshold(seconds * 1000))}
+                  disabled={!isLowTimeWarningEnabled}
+                >
+                  {seconds}s
+                </PresetButton>
+              ))}
+            </ThresholdControls>
+          </ThresholdInputGroup>
         </SettingRow>
       </SettingsGrid>
     </SettingsContainer>

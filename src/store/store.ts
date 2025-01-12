@@ -1,11 +1,13 @@
 import { configureStore } from '@reduxjs/toolkit';
 import timerReducer from './timerSlice.ts';
 import settingsReducer from './settingsSlice.ts';
+import playerReducer from './playerSlice.ts';
 
 export const store = configureStore({
   reducer: {
     timer: timerReducer,
     settings: settingsReducer,
+    player: playerReducer,
   },
 });
 

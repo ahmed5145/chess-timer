@@ -37,6 +37,7 @@ const ConfigContainer = styled.div`
   animation: ${slideIn} 0.5s ease-out;
   position: relative;
   overflow: hidden;
+  transition: all 0.3s ease;
 
   &:before {
     content: '';
@@ -64,18 +65,31 @@ const Title = styled.h2`
   letter-spacing: 1px;
   font-weight: 600;
   position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   
-  &:after {
-    content: '';
-    position: absolute;
-    bottom: -6px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 30px;
-    height: 2px;
-    background: linear-gradient(90deg, #2ecc71, #3498db);
-    border-radius: 2px;
+  &:hover {
+    color: #2ecc71;
   }
+`;
+
+const ChevronIcon = styled.span<{ isCollapsed: boolean }>`
+  display: inline-block;
+  transform: ${props => props.isCollapsed ? 'rotate(-90deg)' : 'rotate(90deg)'};
+  transition: transform 0.3s ease;
+  &:after {
+    content: '›';
+    font-size: 1.5rem;
+  }
+`;
+
+const ContentContainer = styled.div<{ isCollapsed: boolean }>`
+  display: ${props => props.isCollapsed ? 'none' : 'block'};
+  opacity: ${props => props.isCollapsed ? 0 : 1};
+  transition: opacity 0.3s ease;
 `;
 
 const PresetGrid = styled.div`
@@ -226,6 +240,7 @@ const TimeControlConfig: React.FC = () => {
     seconds: 0,
     increment: 0,
   });
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const handlePresetSelect = (preset: TimeFormat) => {
     setSelectedPreset(preset);
@@ -248,51 +263,56 @@ const TimeControlConfig: React.FC = () => {
 
   return (
     <ConfigContainer>
-      <Title>Time Control</Title>
-      <PresetGrid>
-        {(Object.keys(timePresets) as TimeFormat[]).map(preset => (
-          <PresetButton
-            key={preset}
-            isSelected={selectedPreset === preset}
-            onClick={() => handlePresetSelect(preset)}
-          >
-            {preset}
-          </PresetButton>
-        ))}
-      </PresetGrid>
+      <Title onClick={() => setIsCollapsed(!isCollapsed)}>
+        <ChevronIcon isCollapsed={isCollapsed} />
+        Time Control
+      </Title>
+      <ContentContainer isCollapsed={isCollapsed}>
+        <PresetGrid>
+          {(Object.keys(timePresets) as TimeFormat[]).map(preset => (
+            <PresetButton
+              key={preset}
+              isSelected={selectedPreset === preset}
+              onClick={() => handlePresetSelect(preset)}
+            >
+              {preset}
+            </PresetButton>
+          ))}
+        </PresetGrid>
 
-      {selectedPreset === 'custom' && (
-        <CustomInputs>
-          <InputGroup>
-            <Label>Minutes</Label>
-            <Input
-              type="number"
-              min="0"
-              value={customTime.minutes}
-              onChange={(e) => handleCustomTimeChange('minutes', e.target.value)}
-            />
-          </InputGroup>
-          <InputGroup>
-            <Label>Seconds</Label>
-            <Input
-              type="number"
-              min="0"
-              max="59"
-              value={customTime.seconds}
-              onChange={(e) => handleCustomTimeChange('seconds', e.target.value)}
-            />
-          </InputGroup>
-          <InputGroup>
-            <Label>Increment (sec)</Label>
-            <Input
-              type="number"
-              min="0"
-              value={customTime.increment}
-              onChange={(e) => handleCustomTimeChange('increment', e.target.value)}
-            />
-          </InputGroup>
-        </CustomInputs>
-      )}
+        {selectedPreset === 'custom' && (
+          <CustomInputs>
+            <InputGroup>
+              <Label>Minutes</Label>
+              <Input
+                type="number"
+                min="0"
+                value={customTime.minutes}
+                onChange={(e) => handleCustomTimeChange('minutes', e.target.value)}
+              />
+            </InputGroup>
+            <InputGroup>
+              <Label>Seconds</Label>
+              <Input
+                type="number"
+                min="0"
+                max="59"
+                value={customTime.seconds}
+                onChange={(e) => handleCustomTimeChange('seconds', e.target.value)}
+              />
+            </InputGroup>
+            <InputGroup>
+              <Label>Increment (sec)</Label>
+              <Input
+                type="number"
+                min="0"
+                value={customTime.increment}
+                onChange={(e) => handleCustomTimeChange('increment', e.target.value)}
+              />
+            </InputGroup>
+          </CustomInputs>
+        )}
+      </ContentContainer>
     </ConfigContainer>
   );
 };
