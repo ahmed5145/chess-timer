@@ -8,7 +8,7 @@
 
 A modern, responsive chess timer built with React and TypeScript. Features a sleek dark theme, intuitive controls, and professional-grade accuracy for serious chess players.
 
-![Chess Timer Preview](preview.png)
+![Chess Timer Preview](./public/preview.png)
 
 ## ✨ Features
 
@@ -46,7 +46,7 @@ A modern, responsive chess timer built with React and TypeScript. Features a sle
 
 1. Clone the repository:
 \`\`\`bash
-git clone https://github.com/yourusername/chess-timer.git
+git clone https://github.com/ahmed5145/chess-timer.git
 cd chess-timer
 \`\`\`
 
@@ -123,26 +123,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📱 Screenshots
 
 ### Desktop View
-![Desktop View](desktop.png)
+![Desktop View](./public/preview.png)
 
-### Mobile View
-![Mobile View](mobile.png)
 
-### Time Control Selection
-![Time Control](timecontrol.png)
-
-## 🔜 Roadmap
-
-- [ ] Online multiplayer support
-- [ ] Tournament mode
-- [ ] Custom themes
-- [ ] PWA support
-- [ ] Mobile apps
-- [ ] Bluetooth device support
-- [ ] Advanced statistics tracking
 
 ## 📧 Contact
 
-Your Name - [@yourusername](https://twitter.com/yourusername)
+Ahmed Mohamed - ahmedmohamed200354@gmail.com
 
-Project Link: [https://github.com/yourusername/chess-timer](https://github.com/yourusername/chess-timer)
+Project Link: [https://github.com/ahmed5145/chess-timer](https://github.com/ahmed5145/chess-timer)
